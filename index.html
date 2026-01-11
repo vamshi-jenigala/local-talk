@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalTalk - Secure Private Messaging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .chat-container {
+            height: calc(100vh - 2rem);
+            max-height: 800px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Auth Section (Login/Signup) -->
+    <div id="auth-section" class="auth-card glass-effect p-8 rounded-2xl shadow-xl border border-gray-100">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-2xl mb-4 shadow-lg">
+                <i data-lucide="message-square" class="w-8 h-8"></i>
+            </div>
+            <h1 id="auth-title" class="text-2xl font-bold text-gray-800">Welcome Back</h1>
+            <p id="auth-subtitle" class="text-gray-500 mt-2">Sign in to start chatting</p>
+        </div>
+
+        <form id="auth-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="username" required
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Choose a unique name">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </span>
+                    <input type="password" id="password" required
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="At least 8 characters">
+                </div>
+            </div>
+
+            <div id="auth-error" class="hidden text-red-500 text-xs mt-2 text-center bg-red-50 p-2 rounded border border-red-100"></div>
+
+            <button type="submit" id="submit-btn"
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                Sign In
+            </button>
+        </form>
+
+        <div class="mt-6 text-center">
+            <p id="toggle-auth-text" class="text-sm text-gray-600">
+                Don't have an account? 
+                <button id="toggle-auth-btn" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Chat Section -->
+    <div id="chat-section" class="hidden w-full max-w-6xl chat-container bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex">
+        
+        <!-- Sidebar -->
+        <div class="w-1/3 border-r border-gray-200 flex flex-col bg-gray-50">
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold" id="user-avatar-initial">
+                        U
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-800" id="current-display-name">Username</h2>
+                        <span class="text-[10px] text-green-500 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
+                        </span>
+                    </div>
+                </div>
+                <button id="logout-btn" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Logout">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="p-4">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="user-search"
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Search users...">
+                </div>
+            </div>
+
+            <!-- Contacts List -->
+            <div id="contacts-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                <!-- User items will appear here -->
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-window" class="flex-1 flex flex-col bg-white">
+            <!-- Empty State -->
+            <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+                <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
+                    <i data-lucide="messages-square" class="w-10 h-10"></i>
+                </div>
+                <p>Select a contact to start chatting</p>
+            </div>
+
+            <!-- Active Chat -->
+            <div id="active-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+                <!-- Chat Header -->
+                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center font-bold" id="recipient-avatar">
+                            R
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold text-gray-800" id="recipient-name">Recipient Name</h2>
+                            <p class="text-xs text-gray-400">Direct Message</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="message-container" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#f8f9fa]">
+                    <!-- Messages will appear here -->
+                </div>
+
+                <!-- Input -->
+                <div class="p-4 border-t border-gray-200 bg-white">
+                    <form id="send-form" class="flex items-center gap-2">
+                        <input type="text" id="message-input" autocomplete="off"
+                            class="flex-1 border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            placeholder="Type your message...">
+                        <button type="submit"
+                            class="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition-colors shadow-md">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Database Logic (LocalStorage) ---
+        const DB = {
+            getUsers: () => JSON.parse(localStorage.getItem('chat_users') || '[]'),
+            saveUsers: (users) => localStorage.setItem('chat_users', JSON.stringify(users)),
+            getMessages: () => JSON.parse(localStorage.getItem('chat_messages') || '{}'),
+            saveMessages: (messages) => localStorage.setItem('chat_messages', JSON.stringify(messages))
+        };
+
+        // --- State Management ---
+        let currentUser = null;
+        let activeRecipient = null;
+        let isLoginView = true;
+
+        // --- UI Elements ---
+        const authSection = document.getElementById('auth-section');
+        const chatSection = document.getElementById('chat-section');
+        const authForm = document.getElementById('auth-form');
+        const authTitle = document.getElementById('auth-title');
+        const authSubtitle = document.getElementById('auth-subtitle');
+        const submitBtn = document.getElementById('submit-btn');
+        const toggleAuthBtn = document.getElementById('toggle-auth-btn');
+        const toggleAuthText = document.getElementById('toggle-auth-text');
+        const authError = document.getElementById('auth-error');
+        
+        const contactsList = document.getElementById('contacts-list');
+        const userSearch = document.getElementById('user-search');
+        const logoutBtn = document.getElementById('logout-btn');
+        const displayName = document.getElementById('current-display-name');
+        const avatarInitial = document.getElementById('user-avatar-initial');
+        
+        const activeChat = document.getElementById('active-chat');
+        const emptyState = document.getElementById('empty-state');
+        const recipientName = document.getElementById('recipient-name');
+        const recipientAvatar = document.getElementById('recipient-avatar');
+        const messageContainer = document.getElementById('message-container');
+        const sendForm = document.getElementById('send-form');
+        const messageInput = document.getElementById('message-input');
+
+        // --- Initialization ---
+        function init() {
+            lucide.createIcons();
+            
+            // Check session
+            const savedSession = sessionStorage.getItem('active_user');
+            if (savedSession) {
+                loginUser(savedSession);
+            }
+        }
+
+        // --- Auth Functions ---
+        toggleAuthBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginView = !isLoginView;
+            authTitle.innerText = isLoginView ? 'Welcome Back' : 'Create Account';
+            authSubtitle.innerText = isLoginView ? 'Sign in to start chatting' : 'Join our local community';
+            submitBtn.innerText = isLoginView ? 'Sign In' : 'Sign Up';
+            toggleAuthText.innerHTML = isLoginView ? 
+                `Don't have an account? <button id="toggle-auth-btn" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>` : 
+                `Already have an account? <button id="toggle-auth-btn" class="font-medium text-blue-600 hover:text-blue-500">Sign In</button>`;
+            
+            // Re-attach event listener to the new button
+            document.getElementById('toggle-auth-btn').onclick = () => toggleAuthBtn.click();
+            authError.classList.add('hidden');
+        });
+
+        authForm.onsubmit = (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const users = DB.getUsers();
+
+            if (!isLoginView) {
+                // Sign Up Logic
+                if (username.length < 3) return showError("Username too short");
+                if (password.length < 8) return showError("Password must be at least 8 characters");
+                if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+                    return showError("Username already taken");
+                }
+
+                users.push({ username, password });
+                DB.saveUsers(users);
+                loginUser(username);
+            } else {
+                // Login Logic
+                const user = users.find(u => u.username === username && u.password === password);
+                if (!user) return showError("Invalid username or password");
+                loginUser(username);
+            }
+        };
+
+        function showError(msg) {
+            authError.innerText = msg;
+            authError.classList.remove('hidden');
+        }
+
+        function loginUser(username) {
+            currentUser = username;
+            sessionStorage.setItem('active_user', username);
+            
+            authSection.classList.add('hidden');
+            chatSection.classList.remove('hidden');
+            
+            displayName.innerText = username;
+            avatarInitial.innerText = username[0].toUpperCase();
+            
+            renderContacts();
+            lucide.createIcons();
+        }
+
+        logoutBtn.onclick = () => {
+            sessionStorage.removeItem('active_user');
+            location.reload();
+        };
+
+        // --- Chat Logic ---
+        function renderContacts(searchTerm = '') {
+            const users = DB.getUsers();
+            contactsList.innerHTML = '';
+            
+            const filtered = users.filter(u => 
+                u.username !== currentUser && 
+                u.username.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            if (filtered.length === 0) {
+                contactsList.innerHTML = `<p class="text-xs text-center text-gray-400 mt-4">No users found</p>`;
+                return;
+            }
+
+            filtered.forEach(user => {
+                const item = document.createElement('button');
+                item.className = `w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeRecipient === user.username ? 'bg-blue-50 border-blue-100 border' : 'hover:bg-gray-100 border border-transparent'}`;
+                item.onclick = () => openChat(user.username);
+                
+                item.innerHTML = `
+                    <div class="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center font-bold text-gray-400 border border-gray-100">
+                        ${user.username[0].toUpperCase()}
+                    </div>
+                    <div class="text-left overflow-hidden">
+                        <div class="text-sm font-semibold text-gray-700 truncate">${user.username}</div>
+                        <div class="text-[10px] text-gray-400 truncate">Tap to message</div>
+                    </div>
+                `;
+                contactsList.appendChild(item);
+            });
+        }
+
+        userSearch.oninput = (e) => renderContacts(e.target.value);
+
+        function openChat(username) {
+            activeRecipient = username;
+            emptyState.classList.add('hidden');
+            activeChat.classList.remove('hidden');
+            recipientName.innerText = username;
+            recipientAvatar.innerText = username[0].toUpperCase();
+            
+            renderMessages();
+            renderContacts(userSearch.value); // refresh selection highlight
+        }
+
+        function getChatKey(u1, u2) {
+            return [u1, u2].sort().join('__vs__');
+        }
+
+        function renderMessages() {
+            const allMessages = DB.getMessages();
+            const chatKey = getChatKey(currentUser, activeRecipient);
+            const messages = allMessages[chatKey] || [];
+            
+            messageContainer.innerHTML = '';
+            
+            if (messages.length === 0) {
+                messageContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-400 opacity-50 space-y-2">
+                        <p class="text-sm">No messages yet.</p>
+                        <p class="text-[10px]">Your messages are stored only on this device.</p>
+                    </div>
+                `;
+            }
+
+            messages.forEach(msg => {
+                const isMine = msg.sender === currentUser;
+                const div = document.createElement('div');
+                div.className = `flex ${isMine ? 'justify-end' : 'justify-start'}`;
+                
+                div.innerHTML = `
+                    <div class="message-bubble p-3 rounded-2xl shadow-sm text-sm ${
+                        isMine ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
+                    }">
+                        ${msg.text}
+                        <div class="text-[9px] mt-1 opacity-60 text-right">
+                            ${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    </div>
+                `;
+                messageContainer.appendChild(div);
+            });
+            
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+
+        sendForm.onsubmit = (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || !activeRecipient) return;
+
+            const allMessages = DB.getMessages();
+            const chatKey = getChatKey(currentUser, activeRecipient);
+            
+            if (!allMessages[chatKey]) allMessages[chatKey] = [];
+            
+            allMessages[chatKey].push({
+                sender: currentUser,
+                text: text,
+                timestamp: Date.now()
+            });
+
+            DB.saveMessages(allMessages);
+            messageInput.value = '';
+            renderMessages();
+        };
+
+        // Initialize on load
+        window.onload = init;
+    </script>
+</body>
+</html>
