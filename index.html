@@ -3,414 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalTalk - Secure Private Messaging</title>
+    <title>CloudTalk - Global Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-
-        .chat-container {
-            height: calc(100vh - 2rem);
-            max-height: 800px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #d1d5db;
-            border-radius: 10px;
-        }
-
-        .message-bubble {
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-        
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-
-        .auth-card {
-            width: 100%;
-            max-width: 400px;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .chat-container { height: calc(100vh - 2rem); max-height: 800px; }
+        .message-bubble { max-width: 80%; word-wrap: break-word; }
+        .glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-    <!-- Auth Section (Login/Signup) -->
-    <div id="auth-section" class="auth-card glass-effect p-8 rounded-2xl shadow-xl border border-gray-100">
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-2xl mb-4 shadow-lg">
-                <i data-lucide="message-square" class="w-8 h-8"></i>
+    <!-- API Key Warning (Visible only if config is missing) -->
+    <div id="config-warning" class="fixed inset-0 z-[100] bg-gray-900/90 flex items-center justify-center p-6 hidden">
+        <div class="bg-white max-w-md w-full p-8 rounded-2xl shadow-2xl border-t-4 border-amber-500">
+            <div class="flex items-center gap-3 mb-4 text-amber-600">
+                <i data-lucide="alert-circle" class="w-8 h-8"></i>
+                <h2 class="text-xl font-bold">Action Required</h2>
             </div>
-            <h1 id="auth-title" class="text-2xl font-bold text-gray-800">Welcome Back</h1>
-            <p id="auth-subtitle" class="text-gray-500 mt-2">Sign in to start chatting</p>
-        </div>
-
-        <form id="auth-form" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                        <i data-lucide="user" class="w-4 h-4"></i>
-                    </span>
-                    <input type="text" id="username" required
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Choose a unique name">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                        <i data-lucide="lock" class="w-4 h-4"></i>
-                    </span>
-                    <input type="password" id="password" required
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="At least 8 characters">
-                </div>
-            </div>
-
-            <div id="auth-error" class="hidden text-red-500 text-xs mt-2 text-center bg-red-50 p-2 rounded border border-red-100"></div>
-
-            <button type="submit" id="submit-btn"
-                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                Sign In
-            </button>
-        </form>
-
-        <div class="mt-6 text-center">
-            <p id="toggle-auth-text" class="text-sm text-gray-600">
-                Don't have an account? 
-                <button id="toggle-auth-btn" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>
+            <p class="text-gray-600 mb-6 leading-relaxed">
+                Your **Firebase API Key** is missing or invalid. To enable global chatting across devices, you must paste your credentials from the Firebase Console into the code.
             </p>
+            <div class="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+                <p class="text-xs font-mono text-gray-500 mb-2">// Find this in index.html:</p>
+                <code class="text-xs text-blue-600">const firebaseConfig = { ... };</code>
+            </div>
+            <p class="text-xs text-gray-400 italic">Follow the "Step-by-Step" instructions in the chat to get your keys.</p>
         </div>
     </div>
 
-    <!-- Main Chat Section -->
-    <div id="chat-section" class="hidden w-full max-w-6xl chat-container bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex">
-        
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-white/80">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm font-medium text-gray-600">Syncing with Cloud...</p>
+        </div>
+    </div>
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="w-full max-w-md glass-effect p-8 rounded-2xl shadow-xl border">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-2xl mb-4 shadow-lg"><i data-lucide="globe" class="w-8 h-8"></i></div>
+            <h1 id="auth-title" class="text-2xl font-bold text-gray-800">CloudTalk</h1>
+            <p id="auth-subtitle" class="text-gray-500 mt-2">Global real-time messaging</p>
+        </div>
+        <form id="auth-form" class="space-y-4">
+            <input type="text" id="username" required class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Username">
+            <input type="password" id="password" required class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Password (8+ chars)">
+            <div id="auth-error" class="hidden text-red-500 text-xs text-center bg-red-50 p-2 rounded"></div>
+            <button type="submit" id="submit-btn" class="w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md">Sign In</button>
+        </form>
+        <p class="mt-6 text-center text-sm">
+            <button id="toggle-auth-btn" class="text-blue-600 font-medium hover:underline">Don't have an account? Sign Up</button>
+        </p>
+    </div>
+
+    <!-- Chat Section -->
+    <div id="chat-section" class="hidden w-full max-w-6xl chat-container bg-white rounded-2xl shadow-2xl border flex overflow-hidden">
         <!-- Sidebar -->
-        <div class="w-1/3 border-r border-gray-200 flex flex-col bg-gray-50">
-            <!-- Sidebar Header -->
-            <div class="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold" id="user-avatar-initial">
-                        U
-                    </div>
-                    <div>
-                        <h2 class="text-sm font-bold text-gray-800" id="current-display-name">Username</h2>
-                        <span class="text-[10px] text-green-500 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
-                        </span>
-                    </div>
+        <div class="w-1/3 border-r bg-gray-50 flex flex-col">
+            <div class="p-4 border-b flex items-center justify-between bg-white">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs" id="user-initial">U</div>
+                    <span id="current-display-name" class="font-bold text-gray-800 text-sm truncate max-w-[120px]">User</span>
                 </div>
-                <button id="logout-btn" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Logout">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                </button>
+                <button id="logout-btn" class="text-gray-400 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </div>
-
-            <!-- Search Bar -->
-            <div class="p-4">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                        <i data-lucide="search" class="w-4 h-4"></i>
-                    </span>
-                    <input type="text" id="user-search"
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
-                        placeholder="Search users...">
-                </div>
-            </div>
-
-            <!-- Contacts List -->
-            <div id="contacts-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                <!-- User items will appear here -->
-            </div>
+            <div class="p-4"><input type="text" id="user-search" class="w-full p-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Search global users..."></div>
+            <div id="contacts-list" class="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin"></div>
         </div>
-
-        <!-- Chat Area -->
-        <div id="chat-window" class="flex-1 flex flex-col bg-white">
-            <!-- Empty State -->
-            <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
-                <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
-                    <i data-lucide="messages-square" class="w-10 h-10"></i>
-                </div>
-                <p>Select a contact to start chatting</p>
+        <!-- Main Area -->
+        <div class="flex-1 flex flex-col">
+            <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
+                <i data-lucide="message-circle" class="w-12 h-12 opacity-20"></i>
+                <p>Select a user to start chatting</p>
             </div>
-
-            <!-- Active Chat -->
             <div id="active-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden">
-                <!-- Chat Header -->
-                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center font-bold" id="recipient-avatar">
-                            R
-                        </div>
-                        <div>
-                            <h2 class="text-sm font-bold text-gray-800" id="recipient-name">Recipient Name</h2>
-                            <p class="text-xs text-gray-400">Direct Message</p>
-                        </div>
-                    </div>
+                <div class="p-4 border-b font-bold flex items-center gap-2" id="chat-header">
+                    <div class="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold text-xs" id="recipient-initial">R</div>
+                    <span id="recipient-name">Recipient</span>
                 </div>
-
-                <!-- Messages -->
-                <div id="message-container" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#f8f9fa]">
-                    <!-- Messages will appear here -->
-                </div>
-
-                <!-- Input -->
-                <div class="p-4 border-t border-gray-200 bg-white">
-                    <form id="send-form" class="flex items-center gap-2">
-                        <input type="text" id="message-input" autocomplete="off"
-                            class="flex-1 border border-gray-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            placeholder="Type your message...">
-                        <button type="submit"
-                            class="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition-colors shadow-md">
-                            <i data-lucide="send" class="w-5 h-5"></i>
-                        </button>
-                    </form>
-                </div>
+                <div id="message-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"></div>
+                <form id="send-form" class="p-4 border-t flex gap-2 bg-white">
+                    <input type="text" id="message-input" autocomplete="off" class="flex-1 p-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Type a message...">
+                    <button type="submit" class="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition-transform active:scale-95"><i data-lucide="send" class="w-5 h-5"></i></button>
+                </form>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- Database Logic (LocalStorage) ---
-        const DB = {
-            getUsers: () => JSON.parse(localStorage.getItem('chat_users') || '[]'),
-            saveUsers: (users) => localStorage.setItem('chat_users', JSON.stringify(users)),
-            getMessages: () => JSON.parse(localStorage.getItem('chat_messages') || '{}'),
-            saveMessages: (messages) => localStorage.setItem('chat_messages', JSON.stringify(messages))
-        };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- State Management ---
-        let currentUser = null;
-        let activeRecipient = null;
-        let isLoginView = true;
-
-        // --- UI Elements ---
-        const authSection = document.getElementById('auth-section');
-        const chatSection = document.getElementById('chat-section');
-        const authForm = document.getElementById('auth-form');
-        const authTitle = document.getElementById('auth-title');
-        const authSubtitle = document.getElementById('auth-subtitle');
-        const submitBtn = document.getElementById('submit-btn');
-        const toggleAuthBtn = document.getElementById('toggle-auth-btn');
-        const toggleAuthText = document.getElementById('toggle-auth-text');
-        const authError = document.getElementById('auth-error');
-        
-        const contactsList = document.getElementById('contacts-list');
-        const userSearch = document.getElementById('user-search');
-        const logoutBtn = document.getElementById('logout-btn');
-        const displayName = document.getElementById('current-display-name');
-        const avatarInitial = document.getElementById('user-avatar-initial');
-        
-        const activeChat = document.getElementById('active-chat');
-        const emptyState = document.getElementById('empty-state');
-        const recipientName = document.getElementById('recipient-name');
-        const recipientAvatar = document.getElementById('recipient-avatar');
-        const messageContainer = document.getElementById('message-container');
-        const sendForm = document.getElementById('send-form');
-        const messageInput = document.getElementById('message-input');
+        /**
+         * ⚠️ ACTION REQUIRED: Update your credentials here!
+         * Get these from your Firebase Console > Project Settings.
+         */
+        const firebaseConfig = {
+  apiKey: "AIzaSyDO0ZzipQOdZK_hUimtaD0tZMwMgn2BxYc",
+  authDomain: "global-talk-1b36f.firebaseapp.com",
+  projectId: "global-talk-1b36f",
+  storageBucket: "global-talk-1b36f.firebasestorage.app",
+  messagingSenderId: "785598093339",
+  appId: "1:785598093339:web:197293c7e17142cd8a00be"
+};
 
         // --- Initialization ---
-        function init() {
-            lucide.createIcons();
-            
-            // Check session
-            const savedSession = sessionStorage.getItem('active_user');
-            if (savedSession) {
-                loginUser(savedSession);
-            }
+        let app, auth, db;
+        const appId = 'global-chat-v1';
+
+        // Check if config is still placeholder
+        if (firebaseConfig.apiKey.startsWith("REPLACE_WITH") || !firebaseConfig.apiKey) {
+            document.getElementById('config-warning').classList.remove('hidden');
+            console.error("Firebase Error: API Key is invalid. Please update firebaseConfig.");
         }
 
-        // --- Auth Functions ---
-        toggleAuthBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            isLoginView = !isLoginView;
-            authTitle.innerText = isLoginView ? 'Welcome Back' : 'Create Account';
-            authSubtitle.innerText = isLoginView ? 'Sign in to start chatting' : 'Join our local community';
-            submitBtn.innerText = isLoginView ? 'Sign In' : 'Sign Up';
-            toggleAuthText.innerHTML = isLoginView ? 
-                `Don't have an account? <button id="toggle-auth-btn" class="font-medium text-blue-600 hover:text-blue-500">Sign Up</button>` : 
-                `Already have an account? <button id="toggle-auth-btn" class="font-medium text-blue-600 hover:text-blue-500">Sign In</button>`;
-            
-            // Re-attach event listener to the new button
-            document.getElementById('toggle-auth-btn').onclick = () => toggleAuthBtn.click();
-            authError.classList.add('hidden');
-        });
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (err) {
+            console.error("Firebase Init Error:", err);
+        }
 
-        authForm.onsubmit = (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const users = DB.getUsers();
+        let user = null;
+        let currentUserName = localStorage.getItem('chat_username');
+        let activeRecipient = null;
+        let allUsers = [];
+        let isLoginView = true;
+        let msgUnsub = null;
 
-            if (!isLoginView) {
-                // Sign Up Logic
-                if (username.length < 3) return showError("Username too short");
-                if (password.length < 8) return showError("Password must be at least 8 characters");
-                if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-                    return showError("Username already taken");
+        async function init() {
+            lucide.createIcons();
+            if (!auth) return;
+
+            onAuthStateChanged(auth, async (u) => { 
+                user = u; 
+                if(!u) {
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (e) {
+                        console.error("Auth Error:", e.message);
+                        if (e.code === 'auth/api-key-not-valid') {
+                            document.getElementById('config-warning').classList.remove('hidden');
+                        }
+                    }
                 }
-
-                users.push({ username, password });
-                DB.saveUsers(users);
-                loginUser(username);
-            } else {
-                // Login Logic
-                const user = users.find(u => u.username === username && u.password === password);
-                if (!user) return showError("Invalid username or password");
-                loginUser(username);
-            }
-        };
-
-        function showError(msg) {
-            authError.innerText = msg;
-            authError.classList.remove('hidden');
-        }
-
-        function loginUser(username) {
-            currentUser = username;
-            sessionStorage.setItem('active_user', username);
-            
-            authSection.classList.add('hidden');
-            chatSection.classList.remove('hidden');
-            
-            displayName.innerText = username;
-            avatarInitial.innerText = username[0].toUpperCase();
-            
-            renderContacts();
-            lucide.createIcons();
-        }
-
-        logoutBtn.onclick = () => {
-            sessionStorage.removeItem('active_user');
-            location.reload();
-        };
-
-        // --- Chat Logic ---
-        function renderContacts(searchTerm = '') {
-            const users = DB.getUsers();
-            contactsList.innerHTML = '';
-            
-            const filtered = users.filter(u => 
-                u.username !== currentUser && 
-                u.username.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-
-            if (filtered.length === 0) {
-                contactsList.innerHTML = `<p class="text-xs text-center text-gray-400 mt-4">No users found</p>`;
-                return;
-            }
-
-            filtered.forEach(user => {
-                const item = document.createElement('button');
-                item.className = `w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeRecipient === user.username ? 'bg-blue-50 border-blue-100 border' : 'hover:bg-gray-100 border border-transparent'}`;
-                item.onclick = () => openChat(user.username);
-                
-                item.innerHTML = `
-                    <div class="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center font-bold text-gray-400 border border-gray-100">
-                        ${user.username[0].toUpperCase()}
-                    </div>
-                    <div class="text-left overflow-hidden">
-                        <div class="text-sm font-semibold text-gray-700 truncate">${user.username}</div>
-                        <div class="text-[10px] text-gray-400 truncate">Tap to message</div>
-                    </div>
-                `;
-                contactsList.appendChild(item);
+                if(u && currentUserName) showChat();
             });
         }
 
-        userSearch.oninput = (e) => renderContacts(e.target.value);
-
-        function openChat(username) {
-            activeRecipient = username;
-            emptyState.classList.add('hidden');
-            activeChat.classList.remove('hidden');
-            recipientName.innerText = username;
-            recipientAvatar.innerText = username[0].toUpperCase();
-            
-            renderMessages();
-            renderContacts(userSearch.value); // refresh selection highlight
-        }
-
-        function getChatKey(u1, u2) {
-            return [u1, u2].sort().join('__vs__');
-        }
-
-        function renderMessages() {
-            const allMessages = DB.getMessages();
-            const chatKey = getChatKey(currentUser, activeRecipient);
-            const messages = allMessages[chatKey] || [];
-            
-            messageContainer.innerHTML = '';
-            
-            if (messages.length === 0) {
-                messageContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-gray-400 opacity-50 space-y-2">
-                        <p class="text-sm">No messages yet.</p>
-                        <p class="text-[10px]">Your messages are stored only on this device.</p>
-                    </div>
-                `;
-            }
-
-            messages.forEach(msg => {
-                const isMine = msg.sender === currentUser;
-                const div = document.createElement('div');
-                div.className = `flex ${isMine ? 'justify-end' : 'justify-start'}`;
-                
-                div.innerHTML = `
-                    <div class="message-bubble p-3 rounded-2xl shadow-sm text-sm ${
-                        isMine ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
-                    }">
-                        ${msg.text}
-                        <div class="text-[9px] mt-1 opacity-60 text-right">
-                            ${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                    </div>
-                `;
-                messageContainer.appendChild(div);
-            });
-            
-            messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
-
-        sendForm.onsubmit = (e) => {
+        const authForm = document.getElementById('auth-form');
+        authForm.onsubmit = async (e) => {
             e.preventDefault();
-            const text = messageInput.value.trim();
-            if (!text || !activeRecipient) return;
-
-            const allMessages = DB.getMessages();
-            const chatKey = getChatKey(currentUser, activeRecipient);
+            if (!db) return alert("Firebase not connected. Check your API Key.");
             
-            if (!allMessages[chatKey]) allMessages[chatKey] = [];
+            const un = document.getElementById('username').value.trim();
+            const pw = document.getElementById('password').value;
             
-            allMessages[chatKey].push({
-                sender: currentUser,
-                text: text,
-                timestamp: Date.now()
-            });
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', un);
+            
+            try {
+                const snap = await getDoc(userRef);
 
-            DB.saveMessages(allMessages);
-            messageInput.value = '';
-            renderMessages();
+                if (isLoginView) {
+                    if (snap.exists() && snap.data().password === pw) {
+                        currentUserName = un;
+                        localStorage.setItem('chat_username', un);
+                        showChat();
+                    } else { alert("Invalid credentials"); }
+                } else {
+                    if (un.length < 3 || pw.length < 8) alert("User: 3+, Pass: 8+ chars");
+                    else if (snap.exists()) alert("Username taken on cloud");
+                    else {
+                        await setDoc(userRef, { username: un, password: pw, createdAt: Date.now() });
+                        currentUserName = un;
+                        localStorage.setItem('chat_username', un);
+                        showChat();
+                    }
+                }
+            } catch (err) {
+                console.error("Cloud Error:", err);
+                alert("Database Connection Failed: " + err.message);
+            }
         };
 
-        // Initialize on load
-        window.onload = init;
+        function showChat() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('chat-section').classList.remove('hidden');
+            document.getElementById('current-display-name').innerText = currentUserName;
+            document.getElementById('user-initial').innerText = currentUserName[0].toUpperCase();
+            
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users'), (s) => {
+                allUsers = s.docs.map(d => d.data());
+                renderUsers();
+            });
+        }
+
+        function renderUsers() {
+            const list = document.getElementById('contacts-list');
+            const search = document.getElementById('user-search').value.toLowerCase();
+            list.innerHTML = '';
+            const filtered = allUsers.filter(u => u.username !== currentUserName && u.username.toLowerCase().includes(search));
+            
+            if (filtered.length === 0) list.innerHTML = '<div class="text-center text-gray-400 py-4 text-xs">Search for users...</div>';
+
+            filtered.forEach(u => {
+                const b = document.createElement('button');
+                b.className = `w-full p-3 text-left border-b hover:bg-gray-100 flex items-center gap-3 transition-colors rounded-lg mb-1 ${activeRecipient === u.username ? 'bg-blue-50 border-blue-200' : 'border-transparent'}`;
+                b.innerHTML = `
+                    <div class="w-8 h-8 bg-white border rounded-full flex items-center justify-center font-bold text-gray-400 text-xs">${u.username[0].toUpperCase()}</div>
+                    <div class="flex-1 truncate font-semibold text-gray-700 text-sm">${u.username}</div>
+                `;
+                b.onclick = () => {
+                    activeRecipient = u.username;
+                    document.getElementById('empty-state').classList.add('hidden');
+                    document.getElementById('active-chat').classList.remove('hidden');
+                    document.getElementById('recipient-name').innerText = u.username;
+                    document.getElementById('recipient-initial').innerText = u.username[0].toUpperCase();
+                    if(msgUnsub) msgUnsub();
+                    msgUnsub = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), (s) => {
+                        const msgs = s.docs.map(d => d.data()).filter(m => 
+                            (m.s === currentUserName && m.r === activeRecipient) || (m.s === activeRecipient && m.r === currentUserName)
+                        ).sort((a,b) => a.t - b.t);
+                        renderMsgs(msgs);
+                    });
+                    renderUsers();
+                };
+                list.appendChild(b);
+            });
+        }
+
+        function renderMsgs(msgs) {
+            const cont = document.getElementById('message-container');
+            cont.innerHTML = msgs.length ? '' : '<div class="text-center text-gray-300 text-xs italic mt-10">Start a global conversation...</div>';
+            msgs.forEach(m => {
+                const mine = m.s === currentUserName;
+                const div = document.createElement('div');
+                div.className = `flex w-full mb-1 ${mine ? 'justify-end' : 'justify-start'}`;
+                div.innerHTML = `<div class="p-2 px-3 rounded-2xl text-sm shadow-sm ${mine ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border rounded-tl-none'}">${m.txt}<div class="text-[8px] mt-1 opacity-50 text-right">${new Date(m.t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div></div>`;
+                cont.appendChild(div);
+            });
+            cont.scrollTop = cont.scrollHeight;
+        }
+
+        document.getElementById('send-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const i = document.getElementById('message-input');
+            if(!i.value.trim() || !activeRecipient) return;
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), { s: currentUserName, r: activeRecipient, txt: i.value, t: Date.now() });
+            i.value = '';
+        };
+
+        document.getElementById('toggle-auth-btn').onclick = () => {
+            isLoginView = !isLoginView;
+            document.getElementById('auth-title').innerText = isLoginView ? 'CloudTalk' : 'Join Global Chat';
+            document.getElementById('submit-btn').innerText = isLoginView ? 'Sign In' : 'Sign Up';
+            document.getElementById('toggle-auth-btn').innerText = isLoginView ? "Don't have an account? Sign Up" : "Already have an account? Sign In";
+        };
+
+        document.getElementById('logout-btn').onclick = () => { localStorage.clear(); location.reload(); };
+        document.getElementById('user-search').oninput = renderUsers;
+        init();
     </script>
 </body>
 </html>
